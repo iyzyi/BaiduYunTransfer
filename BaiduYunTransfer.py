@@ -80,6 +80,9 @@ class BaiduYunTransfer:
 
     
     def reflush_token(self):
+        '''
+        使用refresh_token，刷新token。
+        '''
         reflush_token_url = 'https://openapi.baidu.com/oauth/2.0/token?grant_type=refresh_token'
         #params = {'code': code, 'client_id': api_key, 'client_secret': secret_key, 'redirect_uri': 'oob'}
         params = {'refresh_token': self.refresh_token, 'client_id': self.api_key, 'client_secret': self.secret_key}
@@ -103,7 +106,11 @@ class BaiduYunTransfer:
 
     def init_token(self):
         '''
-        如果存在配置文件，则从配置文件读入token，否则申请token并将其写入配置文件
+        如果存在配置文件且token存在时间少于27天，则直接从配置文件中读入token；
+        如果存在配置文件且token存在时间超过10个平年，则重新申请token；
+        如果存在配置文件且token存在时间大于27天，少于10个平年，则刷新token；
+        如果不存在配置文件，则申请token。
+        access_token的有效期是一个月，refresh_token的有效期是十年，access_token过期后，使用refresh_token刷新token即可
         '''
         conf = r'BaiduYunTransfer.conf'
         
@@ -115,18 +122,18 @@ class BaiduYunTransfer:
             update_time = int(lines[5])
             now_time = int(time.time())
 
-            if now_time - update_time < 24 * 60 * 60:           # token存在时间少于1天，则直接从配置文件中读入token
+            if now_time - update_time < 27 * 24 * 60 * 60:      # token存在时间少于27天，则直接从配置文件中读入token
                 self.access_token = lines[1]
                 self.refresh_token = lines[3]
                 print('已从配置文件中读入token')
                 return True
-            elif now_time - update_time > 27 * 24 * 60 * 60:    # token存在时间超过27天，则重新申请token
+            elif now_time - update_time > 31536000 * 10:        # token存在时间超过10个平年，则重新申请token（10年后百度网盘还能不能用都不好说）
                 self.apply_for_token()
                 token = '[access_token]\n{}\n[refresh_token]\n{}\n[update_time]\n{}'.format(self.access_token, self.refresh_token, int(time.time()))
                 with open(conf, 'w')as f:
                     f.write(token)
                 print('已重新申请token并将token写入配置文件中')
-            else:                                               # token存在时间大于1天，少于27天，则刷新token
+            else:                                               # token存在时间大于27天，少于10个平年，则刷新token
                 self.refresh_token = lines[3]
                 self.reflush_token()
                 token = '[access_token]\n{}\n[refresh_token]\n{}\n[update_time]\n{}'.format(self.access_token, self.refresh_token, int(time.time()))
