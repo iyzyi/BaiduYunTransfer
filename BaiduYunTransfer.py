@@ -76,7 +76,28 @@ class BaiduYunTransfer:
         elif 'access_token' in res_json and 'refresh_token' in res_json:
             self.access_token = res_json['access_token']
             self.refresh_token = res_json['refresh_token']
-            print(res_json)
+            return True
+
+    
+    def reflush_token(self):
+        reflush_token_url = 'https://openapi.baidu.com/oauth/2.0/token?grant_type=refresh_token'
+        #params = {'code': code, 'client_id': api_key, 'client_secret': secret_key, 'redirect_uri': 'oob'}
+        params = {'refresh_token': self.refresh_token, 'client_id': self.api_key, 'client_secret': self.secret_key}
+        res = requests.get(reflush_token_url, headers=self.headers, params = params)
+
+        try:
+            res_json = res.json()
+        except Exception as e:
+            print('请检查网络是否连通：%s' % e)
+            return False
+
+        if 'error' in res_json:
+            error = res_json['error']
+            print('刷新token失败：%s' % error)
+            return False
+        elif 'access_token' in res_json and 'refresh_token' in res_json:
+            self.access_token = res_json['access_token']
+            self.refresh_token = res_json['refresh_token']
             return True
 
 
@@ -86,28 +107,39 @@ class BaiduYunTransfer:
         '''
         conf = r'BaiduYunTransfer.conf'
         
-        # 存在配置文件并且token存在时间少于25天
-        if os.path.exists(conf):
+        
+        if os.path.exists(conf):                               # 存在配置文件
             with open(conf, 'r')as f:
                 token = f.read()
             lines = token.split('\n')
             update_time = int(lines[5])
             now_time = int(time.time())
-            if now_time - update_time < 25 * 24 * 60 * 60:     # 25天
+
+            if now_time - update_time < 24 * 60 * 60:           # token存在时间少于1天，则直接从配置文件中读入token
                 self.access_token = lines[1]
                 self.refresh_token = lines[3]
                 print('已从配置文件中读入token')
-
-                print('asscee_token:', self.access_token)
-                print('refresh_token:', self.refresh_token)
                 return True
-
-        # 未找到配置文件或者token存在时间超过25天
-        self.apply_for_token()
-        token = '[access_token]\n{}\n[refresh_token]\n{}\n[update_time]\n{}'.format(self.access_token, self.refresh_token, int(time.time()))
-        with open(conf, 'w')as f:
-            f.write(token)
-        print('已将token写入配置文件中')
+            elif now_time - update_time > 27 * 24 * 60 * 60:    # token存在时间超过27天，则重新申请token
+                self.apply_for_token()
+                token = '[access_token]\n{}\n[refresh_token]\n{}\n[update_time]\n{}'.format(self.access_token, self.refresh_token, int(time.time()))
+                with open(conf, 'w')as f:
+                    f.write(token)
+                print('已重新申请token并将token写入配置文件中')
+            else:                                               # token存在时间大于1天，少于27天，则刷新token
+                self.refresh_token = lines[3]
+                self.reflush_token()
+                token = '[access_token]\n{}\n[refresh_token]\n{}\n[update_time]\n{}'.format(self.access_token, self.refresh_token, int(time.time()))
+                with open(conf, 'w')as f:
+                    f.write(token)
+                print('已刷新token并将token写入配置文件中')
+                return True
+        else:                                                   #未找到配置文件
+            self.apply_for_token()
+            token = '[access_token]\n{}\n[refresh_token]\n{}\n[update_time]\n{}'.format(self.access_token, self.refresh_token, int(time.time()))
+            with open(conf, 'w')as f:
+                f.write(token)
+            print('已申请token并将token写入配置文件中')
 
         print('asscee_token:', self.access_token)
         print('refresh_token:', self.refresh_token)
