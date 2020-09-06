@@ -172,6 +172,9 @@ class BaiduYunTransfer:
 
             res = requests.get(self.share_link, headers = self.headers)
             reditList = res.history
+            if reditList == []:                 #当分享不存在时，不会输入验证码，而是直接显示链接不存在。
+                print('链接不存在：此链接分享内容可能因为涉及侵权、色情、反动、低俗等信息，无法访问！') 
+                return False
             link = reditList[len(reditList)-1].headers["location"]      # 302跳转的最后一跳的url
             print('long_link:', link)
 
@@ -318,8 +321,8 @@ class BaiduYunTransfer:
 if __name__ == '__main__':
     api_key = 'GHkLa9AeMAwHK16C5suBKlk3'                                            # 按照https://pan.baidu.com/union/document/entrance#%E7%AE%80%E4%BB%8B 的指引，申请api_key和secret_key。
     secret_key = '2ZRL3CXd6ocjtSwwAnX9ryYf4l85RYGm'                                 # 这里默认是我申请的api_key和secret_key，仅作测试使用。出于安全和QPS的考量，我推荐你去申请自己的api_key和secret_key。
-    share_link = 'https://pan.baidu.com/s/1LGDt_UQfdyQ9ga04bsnLKg'                  # 分享链接
+    share_link = 'https://pan.baidu.com/s/1vzuR_X744zYJKnDHlm7vNA'                  # 分享链接
     #share_link = 'https://pan.baidu.com/share/init?surl=9PsW5sWFLdbR7eHZbnHelw'    # 分享链接，以上两种形式的链接都可以
-    password = 'w1yd'                                                               # 分享提取码
+    password = 'nvt5'                                                               # 分享提取码
     dir = '/转存测试'                                                               # 转存路径，根路径为/
     BaiduYunTransfer(api_key, secret_key, share_link, password, dir)
