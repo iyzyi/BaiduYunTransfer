@@ -178,7 +178,7 @@ class BaiduYunTransfer:
             link = reditList[len(reditList)-1].headers["location"]      # 302跳转的最后一跳的url
             print('long_link:', link)
 
-            res = re.search(r'https://pan\.baidu\.com/share/init\?surl=([0-9a-zA-Z].+?)$', link)
+            res = re.search(r'/share/init\?surl=([0-9a-zA-Z].+$)',link)
             if res:
                 self.surl = res.group(1)
                 print('surl:', self.surl)
