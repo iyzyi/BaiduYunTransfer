@@ -194,7 +194,7 @@ class BaiduYunTransfer:
         详情参见：https://pan.baidu.com/union/document/openLink#%E9%99%84%E4%BB%B6%E5%AF%86%E7%A0%81%E9%AA%8C%E8%AF%81
         '''
         url = 'https://pan.baidu.com/rest/2.0/xpan/share?method=verify'
-        params = {'surl': self.surl}
+        params = {'surl': self.surl, 'access_token': self.access_token}
         data = {'pwd': self.password}
         res = requests.post(url, headers = self.headers, params = params, data = data)
         
@@ -238,7 +238,7 @@ class BaiduYunTransfer:
         sekey               附件链接密钥串，对应verify接口返回的randsk
         '''
         url = 'https://pan.baidu.com/rest/2.0/xpan/share?method=list'
-        params = {"shorturl": self.surl, "page":"1", "num":"100", "root":"1", "fid":"0", "sekey":self.sekey}
+        params = {"shorturl": self.surl, "page":"1", "num":"100", "root":"1", "fid":"0", "sekey":self.sekey, 'access_token': self.access_token}
         res = requests.get(url, headers=self.headers, params=params)
         res_json = res.json()
         
@@ -321,8 +321,8 @@ class BaiduYunTransfer:
 if __name__ == '__main__':
     api_key = 'GHkLa9AeMAwHK16C5suBKlk3'                                            # 按照https://pan.baidu.com/union/document/entrance#%E7%AE%80%E4%BB%8B 的指引，申请api_key和secret_key。
     secret_key = '2ZRL3CXd6ocjtSwwAnX9ryYf4l85RYGm'                                 # 这里默认是我申请的api_key和secret_key，仅作测试使用。出于安全和QPS的考量，我推荐你去申请自己的api_key和secret_key。
-    share_link = 'https://pan.baidu.com/s/1vzuR_X744zYJKnDHlm7vNA'                  # 分享链接
+    share_link = 'https://pan.baidu.com/s/1kgay2QZ_jqgdLi4sM8j0zw'                  # 分享链接
     #share_link = 'https://pan.baidu.com/share/init?surl=9PsW5sWFLdbR7eHZbnHelw'    # 分享链接，以上两种形式的链接都可以
-    password = 'nvt5'                                                               # 分享提取码
+    password = 'wkqw'                                                               # 分享提取码
     dir = '/转存测试'                                                               # 转存路径，根路径为/
     BaiduYunTransfer(api_key, secret_key, share_link, password, dir)
