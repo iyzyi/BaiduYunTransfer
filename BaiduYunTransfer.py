@@ -22,16 +22,22 @@ class BaiduYunTransfer:
                             '9400': '四级封禁',
                             '9500': '五级封禁'}
 
-    def __init__(self, api_key, secret_key, share_link, password, folderpath):
+
+    def __init__(self, api_key, secret_key, share_link, password, folderpath, new_name_list):
         self.api_key = api_key
         self.secret_key = secret_key
         self.share_link = share_link
         self.password = password
         self.folderpath = folderpath
+        self.new_name_list = new_name_list
 
         if self.init_token() and self.get_surl() and self.get_sekey() and self.get_shareid_and_uk_and_fsidlist():
             self.mkdir()
-            self.file_transfer()
+            if self.file_transfer():
+                if self.new_name_list != []:
+                    self.rename()
+                print('本次转存任务结束')
+
 
     def apply_for_token(self):
         '''
@@ -81,6 +87,7 @@ class BaiduYunTransfer:
             self.refresh_token = res_json['refresh_token']
             return True
 
+
     def reflush_token(self):
         '''
         使用refresh_token，刷新token。
@@ -104,6 +111,7 @@ class BaiduYunTransfer:
             self.access_token = res_json['access_token']
             self.refresh_token = res_json['refresh_token']
             return True
+
 
     def init_token(self):
         '''
@@ -158,6 +166,7 @@ class BaiduYunTransfer:
         print('refresh_token:', self.refresh_token)
         return True
 
+
     def mkdir(self):
         '''
         创建文件夹。
@@ -188,6 +197,7 @@ class BaiduYunTransfer:
                         errno, res_json))
 
             return False
+
 
     def get_surl(self):
         '''
@@ -222,6 +232,7 @@ class BaiduYunTransfer:
             else:
                 print('获取surl失败')
                 return False
+
 
     def get_sekey(self):
         '''
@@ -258,6 +269,7 @@ class BaiduYunTransfer:
             return False
 
             # 提取码不是4位的时候，返回的errno是-12，含义是非会员用户达到转存文件数目上限，这是百度网盘的后端代码逻辑不正确，我也没办法。不过你闲的没事输入长度不是4位的提取码干嘛？
+
 
     def get_shareid_and_uk_and_fsidlist(self):
         '''
@@ -311,6 +323,7 @@ class BaiduYunTransfer:
 
             return False
 
+
     def file_transfer(self):
         '''
         附件文件转存
@@ -333,7 +346,9 @@ class BaiduYunTransfer:
         res_json = res.json()
         errno = res_json['errno']
         if errno == 0:
-            print('文件转存成功')
+            print('文件转存成功：', end=' ')
+            self.file_path_list = [file['to'] for file in res_json['extra']['list']]
+            print(self.file_path_list)
             return True
         else:
             error = {'111': '有其他转存任务在进行',
@@ -360,11 +375,43 @@ class BaiduYunTransfer:
         # 转存成功后再次转存到同一文件夹下时返回errno=12，批量操作失败，如：{"errno":12,"task_id":0,"info":[{"path":"\/doax","errno":-30,"fsid":557084550688759}]}
 
 
+    def rename(self):
+        if len(self.file_path_list) != len(self.new_name_list):
+            print('[ERROR] 转存页面根目录下的文件（夹）数量 与 用户提供的新文件（夹）名的数量 不相等，终止文件重命名。')
+            return
+
+        print('正在进行文件重命名：')
+
+        for i in range(len(self.file_path_list)):
+            url = "https://pan.baidu.com/rest/2.0/xpan/file?method=filemanager&access_token={}&opera=rename".format(self.access_token)
+
+            payload = { 'async': '0',                                                                                               # 0 同步，1 自适应，2 异步
+                        'filelist': '[{"path": "%s", "newname": "%s"}]' % (self.file_path_list[i], self.new_name_list[i]),      # 示例：[{"path":"/test/123456.docx","newname":"123.docx"}]
+                        'ondup': 'newcopy'                                                                                          # fail(默认，直接返回失败)、newcopy(重命名文件)、overwrite、skip
+            }
+
+            res = requests.request("POST", url, data = payload)
+            res_json = res.json()
+            errno = res_json['errno']
+            if errno == 0:
+                print('\t{} 重命名为 {}'.format(self.file_path_list[i], self.new_name_list[i]))
+
+
+
 if __name__ == '__main__':
-    api_key = 'GHkLa9AeMAwHK16C5suBKlk3'  # 按照https://pan.baidu.com/union/document/entrance#%E7%AE%80%E4%BB%8B 的指引，申请api_key和secret_key。
-    secret_key = '2ZRL3CXd6ocjtSwwAnX9ryYf4l85RYGm'  # 这里默认是我申请的api_key和secret_key，仅作测试使用。出于安全和QPS的考量，我推荐你去申请自己的api_key和secret_key。
-    share_link = 'https://pan.baidu.com/s/1kgay2QZ_jqgdLi4sM8j0zw'  # 分享链接
-    # share_link = 'https://pan.baidu.com/share/init?surl=9PsW5sWFLdbR7eHZbnHelw'    # 分享链接，以上两种形式的链接都可以
-    password = 'wkqw'  # 分享提取码
-    folderpath = '/转存测试'  # 转存路径，根路径为/
-    BaiduYunTransfer(api_key, secret_key, share_link, password, folderpath)
+    api_key = 'GHkLa9AeMAwHK16C5suBKlk3'                                            # 按照https://pan.baidu.com/union/document/entrance#%E7%AE%80%E4%BB%8B 的指引，申请api_key和secret_key。
+    secret_key = '2ZRL3CXd6ocjtSwwAnX9ryYf4l85RYGm'                                 # 这里默认是我申请的api_key和secret_key，仅作测试使用。出于安全和QPS的考量，我推荐你去申请自己的api_key和secret_key。
+
+    #share_link = 'https://pan.baidu.com/s/1mICg78562Qk41UjQ_iHqDA'
+    share_link = 'https://pan.baidu.com/s/1w2N3Qwa_Agu6HUn6jax5zg'                  # 分享链接
+    # share_link = 'https://pan.baidu.com/share/init?surl=9PsW5sWFLdbR7eHZbnHelw'   # 分享链接，以上两种形式的链接都可以
+    password = '1234'                                                               # 分享提取码
+
+    folderpath = '/转存测试'                                                        # 转存路径，根路径为/
+
+    new_name_list = []                                                              # 本变量可用于批量更改转存文件（夹）的名称，空[]表示保持原文件（夹）名不变
+    # new_name_list = ['new_name1', 'new_name2', 'new_name3']                       # 该列表的元素个数需与转存根目录下的文件（夹）数相同，并一一对应将原文件（夹）名更改为本列表中对应的新文件名
+                                                                                    # 上一行的示例表示：原转存的根目录下有三个文件（夹），本程序会分别将这三个文件（夹）重命名为new_name1, new_name2, new_name3
+                                                                                    # PS：其实这个功能大多数情况下都是用于原转存的根目录下有且只有一个文件（夹）
+
+    BaiduYunTransfer(api_key, secret_key, share_link, password, folderpath, new_name_list)
