@@ -224,7 +224,7 @@ class BaiduYunTransfer:
             link = reditList[len(reditList) - 1].headers["location"]  # 302跳转的最后一跳的url
             print('long_link:', link)
 
-            res = re.search(r'/share/init\?surl=([0-9a-zA-Z].+$)', link)
+            res = re.search(r'/share/init\?surl=([0-9a-zA-Z_\-].+$)', link)
             if res:
                 self.surl = res.group(1)
                 print('surl:', self.surl)
@@ -403,9 +403,9 @@ if __name__ == '__main__':
     secret_key = '2ZRL3CXd6ocjtSwwAnX9ryYf4l85RYGm'                                 # 这里默认是我申请的api_key和secret_key，仅作测试使用。出于安全和QPS的考量，我推荐你去申请自己的api_key和secret_key。
 
     #share_link = 'https://pan.baidu.com/s/1mICg78562Qk41UjQ_iHqDA'
-    share_link = 'https://pan.baidu.com/s/1w2N3Qwa_Agu6HUn6jax5zg'                  # 分享链接
+    share_link = 'https://pan.baidu.com/s/1_opp4V8INy522XK-TKh7QQ'                  # 分享链接
     # share_link = 'https://pan.baidu.com/share/init?surl=9PsW5sWFLdbR7eHZbnHelw'   # 分享链接，以上两种形式的链接都可以
-    password = '1234'                                                               # 分享提取码
+    password = '1tvp'                                                               # 分享提取码
 
     folderpath = '/转存测试'                                                        # 转存路径，根路径为/
 
